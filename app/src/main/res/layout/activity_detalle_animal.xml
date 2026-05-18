@@ -1,0 +1,379 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.google.android.material.appbar.MaterialToolbar
+    android:id="@+id/toolbar"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:backgroundTint="#6750A4"
+    android:title="Detalle animal"
+    android:titleTextColor="@android:color/white"
+    app:layout_constraintTop_toTopOf="parent"
+    app:layout_constraintStart_toStartOf="parent"
+    app:layout_constraintEnd_toEndOf="parent">
+
+    <ImageView
+        android:id="@+id/btnAcciones"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_gravity="end"
+        android:layout_marginEnd="12dp"
+        android:padding="6dp"
+        android:src="@drawable/ic_more_horiz_circle"
+        android:background="?attr/selectableItemBackgroundBorderless" />
+
+</com.google.android.material.appbar.MaterialToolbar>
+
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPrincipal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="3dp"
+                app:strokeWidth="1dp"
+                android:layout_marginTop="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <!-- CROTAL (PROTAGONISTA) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <!-- CROTAL -->
+                        <TextView
+                            android:id="@+id/tvCrotal"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="ES010123456789"
+                            android:textColor="@android:color/black"
+                            android:textSize="24sp"
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="end" />
+
+                        <!-- CONTENEDOR ICONOS -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="end">
+
+                            <ImageView
+                                android:id="@+id/ivCrotalIzquierdo"
+                                android:layout_width="30dp"
+                                android:layout_height="30dp"
+                                android:padding="1dp"
+                                android:src="@drawable/ic_crotal_presente" />
+
+                            <ImageView
+                                android:id="@+id/ivCrotalDerecho"
+                                android:layout_width="30dp"
+                                android:layout_height="30dp"
+                                android:padding="1dp"
+                                android:layout_marginStart="-2dp"
+                                android:src="@drawable/ic_crotal_presente" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+
+
+                    <LinearLayout
+                        android:id="@+id/layoutInfoLinea"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <!-- EDAD -->
+                        <TextView
+                            android:id="@+id/tvEdad"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="2 años"
+                            android:textSize="18sp"
+                            android:textStyle="bold"
+                            android:textColor="#6750A4" />
+
+                        <!-- SEPARADOR -->
+
+
+                        <TextView
+                            android:id="@+id/tvSeparador1"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" · "
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="6dp" />
+
+
+                        <TextView
+                            android:id="@+id/tvTipo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:paddingStart="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:text="Vaca"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@android:color/white"
+                            android:background="@drawable/bg_chip_estado_activo" />
+
+                        <TextView
+                            android:id="@+id/tvSeparadorRaza"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" · "
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="6dp"
+                            android:textColor="@android:color/darker_gray" />
+
+                        <!--ESTADO REPRODUCTIVO -->
+                        <TextView
+                            android:id="@+id/tvEstadoReproductivo"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Preñada"
+                            android:textSize="15sp"
+                            android:textColor="@android:color/darker_gray" />
+
+
+                        <!-- SEPARADOR 2 -->
+                        <TextView
+                            android:id="@+id/tvSeparador2"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" · "
+                            android:visibility="gone"
+                            android:layout_marginStart="6dp"
+                            android:layout_marginEnd="6dp" />
+
+                        <!-- FECHA BAJA -->
+                        <TextView
+                            android:id="@+id/tvFechaBajaInline"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="12/03/2024"
+                            android:textSize="15sp"
+                            android:textColor="@android:color/darker_gray"
+                            android:visibility="gone" />
+
+                    </LinearLayout>
+
+                    </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <!-- FILA 1 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:weightSum="2">
+
+                        <!-- F. NACIMIENTO (IZQUIERDA) -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="F. Nacimiento"
+                                android:textColor="@android:color/darker_gray"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/tvFechaNacimiento"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="-"
+                                android:textColor="@android:color/black"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <!-- CROTAL MADRE (DERECHA) -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Crotal Madre"
+                                android:textColor="@android:color/darker_gray"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/tvCrotalMadre"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="-"
+                                android:textColor="@android:color/black"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:ellipsize="end" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                    <!-- FILA 2 -->
+
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="18dp"
+                        android:orientation="horizontal"
+                        android:weightSum="2">
+
+                        <!-- RAZA -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Raza"
+                                android:textColor="@android:color/darker_gray"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/tvRazaInline"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Limusin"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                android:textColor="@android:color/black" />
+                        </LinearLayout>
+
+                        <!-- CAPA -->
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center_horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Capa"
+                                android:textColor="@android:color/darker_gray"
+                                android:textSize="14sp" />
+
+                            <TextView
+                                android:id="@+id/tvCapa"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="-"
+                                android:textColor="@android:color/black"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSeccionDinamica"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:id="@+id/layoutSeccionDinamica"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <com.google.android.material.tabs.TabLayout
+                        android:id="@+id/tabDetalleAnimal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:tabIndicatorColor="#6750A4"
+                        app:tabSelectedTextColor="#6750A4"
+                        app:tabTextColor="@android:color/darker_gray"
+                        app:tabMode="scrollable"
+                        app:tabGravity="start" />
+
+                    <androidx.viewpager2.widget.ViewPager2
+                        android:id="@+id/viewPagerDetalleAnimal"
+                        android:layout_width="match_parent"
+                        android:layout_height="320dp" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+
+        </LinearLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
