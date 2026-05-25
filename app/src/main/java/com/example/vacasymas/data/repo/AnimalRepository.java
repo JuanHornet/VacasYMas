@@ -1140,4 +1140,47 @@ public class AnimalRepository {
     public boolean reactivarAnimal(String idAnimal, int estatus) {
         return dbHelper.reactivarAnimal(idAnimal, estatus);
     }
+
+    public List<Animal> buscarActivosPorUltimos4DigitosYExplotacion(String ultimos4, String idExplotacionUuid) {
+        List<Animal> lista = new ArrayList<>();
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = null;
+
+        try {
+            String sql = "SELECT a.*, e.nombre AS nombre_explotacion " +
+                    "FROM animales a " +
+                    "LEFT JOIN explotaciones e ON a.id_explotacion_uuid = e.id " +
+                    "WHERE substr(a.crotal, -4) = ? " +
+                    "AND a.id_explotacion_uuid = ? " +
+                    "AND a.eliminado = 0 " +
+                    "AND a.statecode = '1' " +
+                    "ORDER BY a.crotal ASC";
+
+            cursor = db.rawQuery(sql, new String[]{ultimos4, idExplotacionUuid});
+
+            while (cursor.moveToNext()) {
+                lista.add(mapCursorToAnimal(cursor));
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "Error buscando animales activos por últimos 4 dígitos y explotación", e);
+        } finally {
+            if (cursor != null) cursor.close();
+            db.close();
+        }
+
+        return lista;
+    }
+
+    public void buscarActivosPorUltimos4DigitosYExplotacionAsync(String ultimos4, String idExplotacionUuid, ListaAnimalesCallback callback) {
+        new Thread(() -> {
+            try {
+                List<Animal> lista = buscarActivosPorUltimos4DigitosYExplotacion(ultimos4, idExplotacionUuid);
+                callback.onSuccess(lista);
+            } catch (Exception e) {
+                Log.e(TAG, "Error en buscarActivosPorUltimos4DigitosYExplotacionAsync", e);
+                callback.onError(e.getMessage());
+            }
+        }).start();
+    }
 }

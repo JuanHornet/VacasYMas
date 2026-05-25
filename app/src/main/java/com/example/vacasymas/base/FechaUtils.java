@@ -32,4 +32,13 @@ public class FechaUtils {
     public static String hoyIso() {
         return hoy();
     }
+
+    public static String ahoraFechaHoraLocal() {
+        return new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                .format(new Date());
+    }
+
+    public static long ahoraMillis() {
+        return System.currentTimeMillis();
+    }
 }

@@ -7,9 +7,9 @@
 
     <application
         android:name=".base.MyApp"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -48,6 +48,22 @@
             android:name=".ui.reproduccion.IdentificarCriaActivity"
             android:screenOrientation="portrait" />
         <activity android:name=".ui.crotales.CrotalesActivity" />
+
+        <activity
+            android:name=".ui.listados.DetalleListaManualActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.listados.ListasManualesActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.listados.CrearListaManualActivity"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.listados.ListadosActivity"
+            android:exported="false" />
 
 
     </application>

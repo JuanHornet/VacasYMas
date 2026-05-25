@@ -59,7 +59,6 @@ public class AnimalAdapter extends RecyclerView.Adapter<AnimalAdapter.AnimalView
         private final TextView tvCrotal;
         private final TextView tvTipo;
         private final TextView tvFechaNacimiento;
-        private final TextView tvCapa;
         private final TextView tvMotivoBaja;
 
         public AnimalViewHolder(@NonNull View itemView) {
@@ -67,22 +66,28 @@ public class AnimalAdapter extends RecyclerView.Adapter<AnimalAdapter.AnimalView
             tvCrotal = itemView.findViewById(R.id.tvCrotal);
             tvTipo = itemView.findViewById(R.id.tvTipo);
             tvFechaNacimiento = itemView.findViewById(R.id.tvFechaNacimiento);
-            tvCapa = itemView.findViewById(R.id.tvCapa);
             tvMotivoBaja = itemView.findViewById(R.id.tvMotivoBaja);
         }
 
         public void bind(Animal animal, OnAnimalClickListener listener) {
             tvCrotal.setText(valorSeguro(animal.getCrotal()));
             tvTipo.setText("Tipo: " + valorSeguro(animal.getEstatusDescripcion()));
-            tvFechaNacimiento.setText("Fecha nacimiento: " + valorSeguro(animal.getFechaNacimiento()));
-            tvCapa.setText("Capa: " + valorSeguro(animal.getCapa()));
+            tvFechaNacimiento.setText(
+                    "Nacimiento: " +
+                            com.example.vacasymas.base.FechaUtils.formatearFecha(
+                                    animal.getFechaNacimiento()
+                            )
+            );
 
             String motivoBaja = animal.getFechaBajaExplotacion();
             if (motivoBaja == null || motivoBaja.trim().isEmpty()) {
                 tvMotivoBaja.setVisibility(View.GONE);
             } else {
                 tvMotivoBaja.setVisibility(View.VISIBLE);
-                tvMotivoBaja.setText("Baja en explotación: " + motivoBaja);
+                tvMotivoBaja.setText(
+                        "Baja en explotación: " +
+                                com.example.vacasymas.base.FechaUtils.formatearFecha(motivoBaja)
+                );
             }
 
             itemView.setOnClickListener(v -> {

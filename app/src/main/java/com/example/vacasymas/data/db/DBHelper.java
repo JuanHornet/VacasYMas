@@ -5,13 +5,16 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
 
 import com.example.vacasymas.base.FechaUtils;
 import com.example.vacasymas.data.models.Animal;
+import com.example.vacasymas.data.models.AnimalEnLista;
 import com.example.vacasymas.data.models.CrotalDisponible;
 import com.example.vacasymas.data.models.DiagnosticoGestacion;
 import com.example.vacasymas.data.models.EventoReproductivo;
 import com.example.vacasymas.data.models.Explotacion;
+import com.example.vacasymas.data.models.ListaAnimal;
 import com.example.vacasymas.data.models.NotaAnimal;
 import com.example.vacasymas.data.models.PesoAnimal;
 import com.example.vacasymas.data.models.Usuario;
@@ -23,13 +26,16 @@ import java.util.UUID;
 public class DBHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "vacasymas.db";
-    private static final int DATABASE_VERSION = 6;
+    private static final int DATABASE_VERSION = 9;
 
     //diagnosticos gestacion
     public static final String ESTADO_REPRODUCTIVO_NADA = "nada";
     public static final String ESTADO_REPRODUCTIVO_VACIA = "vacia";
     public static final String ESTADO_REPRODUCTIVO_CUBIERTA = "cubierta";
     public static final String ESTADO_REPRODUCTIVO_PRENADA = "preñada";
+
+    public static final String TABLA_LISTAS_ANIMALES = "listas_animales";
+    public static final String TABLA_LISTA_ANIMALES_DETALLE = "lista_animales_detalle";
 
     public DBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -200,6 +206,48 @@ public class DBHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_crotales_fecha_actualizacion " +
                 "ON crotales_disponibles(fecha_actualizacion)");
 
+        db.execSQL("CREATE TABLE IF NOT EXISTS listas_animales (" +
+                "id TEXT PRIMARY KEY, " +
+                "id_explotacion_uuid TEXT NOT NULL, " +
+                "nombre TEXT NOT NULL, " +
+                "tipo TEXT, " +
+                "observaciones TEXT, " +
+                "fecha_creacion TEXT, " +
+                "sincronizado INTEGER DEFAULT 0, " +
+                "eliminado INTEGER DEFAULT 0, " +
+                "fecha_actualizacion TEXT, " +
+                "fecha_eliminado TEXT)");
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS lista_animales_detalle (" +
+                "id TEXT PRIMARY KEY, " +
+                "id_lista TEXT NOT NULL, " +
+                "id_animal TEXT NOT NULL, " +
+                "crotal TEXT, " +
+                "sexo TEXT, " +
+                "marcado INTEGER DEFAULT 0, " +
+                "fecha_alta TEXT, " +
+                "observaciones TEXT, " +
+                "sincronizado INTEGER DEFAULT 0, " +
+                "eliminado INTEGER DEFAULT 0, " +
+                "fecha_actualizacion TEXT, " +
+                "fecha_eliminado TEXT, " +
+                "UNIQUE(id_lista, id_animal))");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_listas_animales_explotacion " +
+                "ON listas_animales(id_explotacion_uuid)");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_listas_animales_eliminado " +
+                "ON listas_animales(eliminado)");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_lista_animales_detalle_lista " +
+                "ON lista_animales_detalle(id_lista)");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_lista_animales_detalle_animal " +
+                "ON lista_animales_detalle(id_animal)");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_lista_animales_detalle_eliminado " +
+                "ON lista_animales_detalle(eliminado)");
+
     }
 
 
@@ -213,6 +261,11 @@ public class DBHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS pesos_animales");
         db.execSQL("DROP TABLE IF EXISTS eventos_reproductivos");
         db.execSQL("DROP TABLE IF EXISTS crotales_disponibles");
+        db.execSQL("DROP TABLE IF EXISTS lista_animales_detalle");
+        db.execSQL("DROP TABLE IF EXISTS listas_animales");
+        if (oldVersion < DATABASE_VERSION) {
+            db.execSQL("ALTER TABLE lista_animales_detalle ADD COLUMN marcado INTEGER DEFAULT 0");
+        }
         onCreate(db);
     }
 
@@ -1374,6 +1427,7 @@ public class DBHelper extends SQLiteOpenHelper {
                         "WHERE substr(crotal, -4) = ? " +
                         "AND id_explotacion_uuid = ? " +
                         "AND eliminado = 0 " +
+                        "AND (statecode IS NULL OR statecode != '0') " +
                         "ORDER BY crotal ASC",
                 new String[]{ultimos4, idExplotacion}
         );
@@ -2414,4 +2468,465 @@ public class DBHelper extends SQLiteOpenHelper {
         }
     }
 
+    //******************LISTAS*************************************
+
+    public boolean guardarListaAnimal(ListaAnimal lista) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("id", lista.getId());
+        values.put("id_explotacion_uuid", lista.getIdExplotacionUuid());
+        values.put("nombre", lista.getNombre());
+        values.put("tipo", lista.getTipo());
+        values.put("observaciones", lista.getObservaciones());
+        values.put("fecha_creacion", lista.getFechaCreacion());
+        values.put("sincronizado", 0);
+        values.put("eliminado", 0);
+        values.put("fecha_actualizacion", lista.getFechaActualizacion());
+        values.put("fecha_eliminado", lista.getFechaEliminado());
+
+        long res = db.insertWithOnConflict(
+                "listas_animales",
+                null,
+                values,
+                SQLiteDatabase.CONFLICT_REPLACE
+        );
+
+        return res != -1;
+    }
+
+    public List<ListaAnimal> obtenerListasAnimales(String idExplotacionUuid) {
+        List<ListaAnimal> lista = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT * FROM listas_animales " +
+                        "WHERE id_explotacion_uuid = ? AND eliminado = 0 " +
+                        "ORDER BY fecha_creacion DESC",
+                new String[]{idExplotacionUuid}
+        );
+
+        if (cursor.moveToFirst()) {
+            do {
+                ListaAnimal item = new ListaAnimal();
+                item.setId(cursor.getString(cursor.getColumnIndexOrThrow("id")));
+                item.setIdExplotacionUuid(cursor.getString(cursor.getColumnIndexOrThrow("id_explotacion_uuid")));
+                item.setNombre(cursor.getString(cursor.getColumnIndexOrThrow("nombre")));
+                item.setTipo(cursor.getString(cursor.getColumnIndexOrThrow("tipo")));
+                item.setObservaciones(cursor.getString(cursor.getColumnIndexOrThrow("observaciones")));
+                item.setFechaCreacion(cursor.getString(cursor.getColumnIndexOrThrow("fecha_creacion")));
+                item.setSincronizado(cursor.getInt(cursor.getColumnIndexOrThrow("sincronizado")));
+                item.setEliminado(cursor.getInt(cursor.getColumnIndexOrThrow("eliminado")));
+                item.setFechaActualizacion(cursor.getString(cursor.getColumnIndexOrThrow("fecha_actualizacion")));
+                item.setFechaEliminado(cursor.getString(cursor.getColumnIndexOrThrow("fecha_eliminado")));
+
+                lista.add(item);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return lista;
+    }
+
+    public boolean añadirAnimalALista(String idLista, Animal animal, String fechaActualizacion) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("id", UUID.randomUUID().toString());
+        values.put("id_lista", idLista);
+        values.put("id_animal", animal.getId());
+        values.put("crotal", animal.getCrotal());
+        values.put("sexo", animal.getSexo());
+        values.put("marcado", 0);
+        values.put("fecha_alta", fechaActualizacion);
+        values.put("observaciones", "");
+        values.put("sincronizado", 0);
+        values.put("eliminado", 0);
+        values.put("fecha_actualizacion", fechaActualizacion);
+        values.put("fecha_eliminado", (String) null);
+
+
+        long res = db.insertWithOnConflict(
+                "lista_animales_detalle",
+                null,
+                values,
+                SQLiteDatabase.CONFLICT_IGNORE
+        );
+
+        return res != -1;
+    }
+
+    public List<AnimalEnLista> obtenerAnimalesDeLista(String idLista) {
+        List<AnimalEnLista> animales = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT * FROM lista_animales_detalle " +
+                        "WHERE id_lista = ? AND eliminado = 0 " +
+                        "ORDER BY fecha_alta DESC",
+                new String[]{idLista}
+        );
+
+        if (cursor.moveToFirst()) {
+            do {
+                AnimalEnLista item = new AnimalEnLista();
+                item.setIdDetalle(cursor.getString(cursor.getColumnIndexOrThrow("id")));
+                item.setIdLista(cursor.getString(cursor.getColumnIndexOrThrow("id_lista")));
+                item.setIdAnimal(cursor.getString(cursor.getColumnIndexOrThrow("id_animal")));
+                item.setCrotal(cursor.getString(cursor.getColumnIndexOrThrow("crotal")));
+                item.setSexo(cursor.getString(cursor.getColumnIndexOrThrow("sexo")));
+                item.setMarcado(cursor.getInt(cursor.getColumnIndexOrThrow("marcado")));
+                item.setFechaAlta(cursor.getString(cursor.getColumnIndexOrThrow("fecha_alta")));
+                item.setObservaciones(cursor.getString(cursor.getColumnIndexOrThrow("observaciones")));
+
+                animales.add(item);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return animales;
+    }
+
+
+    public boolean eliminarAnimalDeLista(String idDetalle, String fechaActualizacion) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("eliminado", 1);
+        values.put("sincronizado", 0);
+        values.put("fecha_eliminado", fechaActualizacion);
+        values.put("fecha_actualizacion", fechaActualizacion);
+
+        int filas = db.update(
+                "lista_animales_detalle",
+                values,
+                "id = ?",
+                new String[]{idDetalle}
+        );
+
+        return filas > 0;
+    }
+
+    public Animal buscarAnimalPorCrotalParcial(String texto, String idExplotacionUuid) {
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT * FROM animales " +
+                        "WHERE id_explotacion_uuid = ? " +
+                        "AND eliminado = 0 " +
+                        "AND statecode = '1' " +
+                        "AND crotal LIKE ? " +
+                        "LIMIT 1",
+                new String[]{idExplotacionUuid, "%" + texto}
+        );
+
+        Animal animal = null;
+
+        if (cursor.moveToFirst()) {
+            animal = cursorToAnimal(cursor);
+        }
+
+        cursor.close();
+        return animal;
+    }
+
+    public List<AnimalEnLista> obtenerAnimalesDeListaPorSexo(String idLista,
+                                                             String sexo) {
+
+        List<AnimalEnLista> lista = new ArrayList<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT * FROM lista_animales_detalle " +
+                        "WHERE id_lista = ? " +
+                        "AND sexo = ? " +
+                        "AND eliminado = 0 " +
+                        "ORDER BY fecha_alta DESC",
+                new String[]{idLista, sexo}
+        );
+
+        while (cursor.moveToNext()) {
+
+            AnimalEnLista item = new AnimalEnLista();
+
+            item.setIdDetalle(
+                    cursor.getString(cursor.getColumnIndexOrThrow("id"))
+            );
+
+            item.setCrotal(
+                    cursor.getString(cursor.getColumnIndexOrThrow("crotal"))
+            );
+
+            item.setSexo(
+                    cursor.getString(cursor.getColumnIndexOrThrow("sexo"))
+            );
+            item.setMarcado(cursor.getInt(cursor.getColumnIndexOrThrow("marcado")));
+
+            lista.add(item);
+        }
+
+        cursor.close();
+        db.close();
+
+        return lista;
+    }
+
+    public boolean actualizarMarcadoAnimalLista(String idDetalle, int marcado, String fechaActualizacion) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("marcado", marcado);
+        values.put("sincronizado", 0);
+        values.put("fecha_actualizacion", fechaActualizacion);
+
+        int filas = db.update(
+                "lista_animales_detalle",
+                values,
+                "id = ?",
+                new String[]{idDetalle}
+        );
+
+        return filas > 0;
+    }
+
+    public boolean actualizarNombreListaAnimal(String idLista, String nuevoNombre, String fechaActualizacion) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("nombre", nuevoNombre);
+        values.put("sincronizado", 0);
+        values.put("fecha_actualizacion", fechaActualizacion);
+
+        int filas = db.update(
+                "listas_animales",
+                values,
+                "id = ?",
+                new String[]{idLista}
+        );
+
+        return filas > 0;
+    }
+
+    public boolean eliminarListaAnimal(String idLista, String fechaActualizacion) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        db.beginTransaction();
+
+        try {
+            ContentValues valuesLista = new ContentValues();
+            valuesLista.put("eliminado", 1);
+            valuesLista.put("sincronizado", 0);
+            valuesLista.put("fecha_eliminado", fechaActualizacion);
+            valuesLista.put("fecha_actualizacion", fechaActualizacion);
+
+            db.update(
+                    "listas_animales",
+                    valuesLista,
+                    "id = ?",
+                    new String[]{idLista}
+            );
+
+            ContentValues valuesDetalle = new ContentValues();
+            valuesDetalle.put("eliminado", 1);
+            valuesDetalle.put("sincronizado", 0);
+            valuesDetalle.put("fecha_eliminado", fechaActualizacion);
+            valuesDetalle.put("fecha_actualizacion", fechaActualizacion);
+
+            db.update(
+                    "lista_animales_detalle",
+                    valuesDetalle,
+                    "id_lista = ?",
+                    new String[]{idLista}
+            );
+
+            db.setTransactionSuccessful();
+            return true;
+
+        } catch (Exception e) {
+            return false;
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    public List<ListaAnimal> obtenerListasAnimalesNoSincronizadas() {
+
+        List<ListaAnimal> lista = new ArrayList<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT * FROM listas_animales " +
+                        "WHERE sincronizado = 0",
+                null
+        );
+
+        while (cursor.moveToNext()) {
+
+            ListaAnimal item = new ListaAnimal();
+
+            item.setId(
+                    cursor.getString(cursor.getColumnIndexOrThrow("id"))
+            );
+
+            item.setIdExplotacionUuid(
+                    cursor.getString(cursor.getColumnIndexOrThrow("id_explotacion_uuid"))
+            );
+
+            item.setNombre(
+                    cursor.getString(cursor.getColumnIndexOrThrow("nombre"))
+            );
+
+            item.setTipo(
+                    cursor.getString(cursor.getColumnIndexOrThrow("tipo"))
+            );
+
+            item.setObservaciones(
+                    cursor.getString(cursor.getColumnIndexOrThrow("observaciones"))
+            );
+
+            item.setFechaCreacion(
+                    cursor.getString(cursor.getColumnIndexOrThrow("fecha_creacion"))
+            );
+
+            item.setSincronizado(
+                    cursor.getInt(cursor.getColumnIndexOrThrow("sincronizado"))
+            );
+
+            item.setEliminado(
+                    cursor.getInt(cursor.getColumnIndexOrThrow("eliminado"))
+            );
+
+            item.setFechaActualizacion(
+                    cursor.getString(cursor.getColumnIndexOrThrow("fecha_actualizacion"))
+            );
+
+            item.setFechaEliminado(
+                    cursor.getString(cursor.getColumnIndexOrThrow("fecha_eliminado"))
+            );
+
+            lista.add(item);
+        }
+
+        cursor.close();
+        db.close();
+
+        return lista;
+    }
+
+    public boolean marcarListaAnimalComoSincronizada(String idLista) {
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("sincronizado", 1);
+
+        int filas = db.update(
+                "listas_animales",
+                values,
+                "id = ?",
+                new String[]{idLista}
+        );
+
+        return filas > 0;
+    }
+
+    public boolean insertarOActualizarListaAnimalDesdeServidor(ListaAnimal lista) {
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        try {
+
+            ContentValues values = new ContentValues();
+
+            values.put("id", lista.getId());
+            values.put("id_explotacion_uuid", lista.getIdExplotacionUuid());
+            values.put("nombre", lista.getNombre());
+            values.put("tipo", lista.getTipo());
+            values.put("observaciones", lista.getObservaciones());
+            values.put("fecha_creacion", lista.getFechaCreacion());
+            values.put("sincronizado", 1);
+            values.put("eliminado", lista.getEliminado());
+            values.put("fecha_actualizacion", lista.getFechaActualizacion());
+            values.put("fecha_eliminado", lista.getFechaEliminado());
+
+            long resultado = db.insertWithOnConflict(
+                    "listas_animales",
+                    null,
+                    values,
+                    SQLiteDatabase.CONFLICT_REPLACE
+            );
+
+            return resultado != -1;
+
+        } catch (Exception e) {
+
+            Log.e("DBHelper",
+                    "Error insertando/actualizando lista desde servidor",
+                    e);
+
+            return false;
+
+        } finally {
+
+            db.close();
+        }
+    }
+
+    public boolean marcarDetalleListaComoSincronizado(String idDetalle) {
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("sincronizado", 1);
+
+        int filas = db.update(
+                "lista_animales_detalle",
+                values,
+                "id = ?",
+                new String[]{idDetalle}
+        );
+
+        db.close();
+
+        return filas > 0;
+    }
+
+    public boolean insertarOActualizarDetalleListaDesdeServidor(AnimalEnLista item) {
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        try {
+            ContentValues values = new ContentValues();
+
+            values.put("id", item.getIdDetalle());
+            values.put("id_lista", item.getIdLista());
+            values.put("id_animal", item.getIdAnimal());
+            values.put("crotal", item.getCrotal());
+            values.put("sexo", item.getSexo());
+            values.put("marcado", item.getMarcado());
+            values.put("fecha_alta", item.getFechaAlta());
+            values.put("observaciones", item.getObservaciones());
+            values.put("sincronizado", 1);
+            values.put("eliminado", item.getEliminado());
+            values.put("fecha_actualizacion", item.getFechaActualizacion());
+            values.put("fecha_eliminado", item.getFechaEliminado());
+
+            long resultado = db.insertWithOnConflict(
+                    "lista_animales_detalle",
+                    null,
+                    values,
+                    SQLiteDatabase.CONFLICT_REPLACE
+            );
+
+            return resultado != -1;
+
+        } catch (Exception e) {
+            Log.e("DBHelper", "Error insertando/actualizando detalle lista desde servidor", e);
+            return false;
+        } finally {
+            db.close();
+        }
+    }
 }

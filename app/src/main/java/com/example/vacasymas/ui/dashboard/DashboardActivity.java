@@ -29,6 +29,7 @@ import com.example.vacasymas.sync.SincronizadorGeneral;
 import com.example.vacasymas.ui.animales.BuscarAnimalActivity;
 import com.example.vacasymas.ui.crotales.CrotalesActivity;
 import com.example.vacasymas.ui.diagnostico.DiagnosticoGestacionActivity;
+import com.example.vacasymas.ui.listados.ListadosActivity;
 import com.example.vacasymas.ui.pesos.PesosActivity;
 import com.example.vacasymas.ui.reproduccion.CriasPendientesActivity;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -112,6 +113,7 @@ public class DashboardActivity extends AppCompatActivity {
         findViewById(R.id.btnPesos).setOnClickListener(v -> irAPesos());
         findViewById(R.id.btnCriasPendientes).setOnClickListener(v -> irACriasPendientes());
         findViewById(R.id.btnCrotales).setOnClickListener(v -> irACrotales());
+        findViewById(R.id.btnListados).setOnClickListener(v -> irAListados());
 
 
     }
@@ -571,6 +573,25 @@ public class DashboardActivity extends AppCompatActivity {
 
         Intent intent = new Intent(DashboardActivity.this, CrotalesActivity.class);
         intent.putExtra("id_explotacion_uuid", idExplotacion);
+        startActivity(intent);
+    }
+
+    private void irAListados() {
+
+        String idExplotacion = SessionManager.getIdExplotacionSeleccionada(this);
+
+        if (idExplotacion == null || idExplotacion.trim().isEmpty()) {
+            Toast.makeText(this,
+                    "No hay explotación seleccionada",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(
+                DashboardActivity.this,
+                ListadosActivity.class
+        );
+
         startActivity(intent);
     }
 }
