@@ -2,18 +2,24 @@ package com.example.vacasymas.data.db;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import com.example.vacasymas.base.FechaUtils;
+import com.example.vacasymas.base.ParideraUtils;
 import com.example.vacasymas.data.models.Animal;
 import com.example.vacasymas.data.models.AnimalEnLista;
+import com.example.vacasymas.data.models.CensoCercado;
+import com.example.vacasymas.data.models.Cercado;
+import com.example.vacasymas.data.models.CercadoConCenso;
 import com.example.vacasymas.data.models.CrotalDisponible;
 import com.example.vacasymas.data.models.DiagnosticoGestacion;
 import com.example.vacasymas.data.models.EventoReproductivo;
 import com.example.vacasymas.data.models.Explotacion;
+import com.example.vacasymas.data.models.FiltroAnimales;
 import com.example.vacasymas.data.models.ListaAnimal;
 import com.example.vacasymas.data.models.NotaAnimal;
 import com.example.vacasymas.data.models.PesoAnimal;
@@ -26,7 +32,7 @@ import java.util.UUID;
 public class DBHelper extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "vacasymas.db";
-    private static final int DATABASE_VERSION = 9;
+    private static final int DATABASE_VERSION = 12;
 
     //diagnosticos gestacion
     public static final String ESTADO_REPRODUCTIVO_NADA = "nada";
@@ -37,8 +43,11 @@ public class DBHelper extends SQLiteOpenHelper {
     public static final String TABLA_LISTAS_ANIMALES = "listas_animales";
     public static final String TABLA_LISTA_ANIMALES_DETALLE = "lista_animales_detalle";
 
+    private final Context context;
+
     public DBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        this.context = context.getApplicationContext();
     }
 
     @Override
@@ -135,6 +144,7 @@ public class DBHelper extends SQLiteOpenHelper {
                 "eliminado INTEGER DEFAULT 0, " +
                 "fecha_actualizacion TEXT, " +
                 "fecha_eliminado TEXT, " +
+                "origen TEXT DEFAULT 'APP', " +
                 "FOREIGN KEY(id_madre) REFERENCES animales(id), " +
                 "FOREIGN KEY(id_cria) REFERENCES animales(id), " +
                 "FOREIGN KEY(id_explotacion_uuid) REFERENCES explotaciones(id)" +
@@ -248,6 +258,61 @@ public class DBHelper extends SQLiteOpenHelper {
         db.execSQL("CREATE INDEX IF NOT EXISTS idx_lista_animales_detalle_eliminado " +
                 "ON lista_animales_detalle(eliminado)");
 
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS cercados (" +
+                "id TEXT PRIMARY KEY, " +
+                "id_explotacion_uuid TEXT NOT NULL, " +
+                "nombre TEXT NOT NULL, " +
+                "superficie_ha REAL, " +
+                "tipo TEXT, " +
+                "observaciones TEXT, " +
+                "activo INTEGER NOT NULL DEFAULT 1, " +
+                "sincronizado INTEGER NOT NULL DEFAULT 0, " +
+                "eliminado INTEGER NOT NULL DEFAULT 0, " +
+                "fecha_actualizacion TEXT NOT NULL, " +
+                "fecha_eliminado TEXT, " +
+                "FOREIGN KEY(id_explotacion_uuid) REFERENCES explotaciones(id)" +
+                ");");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_cercados_explotacion " +
+                "ON cercados(id_explotacion_uuid)");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_cercados_eliminado " +
+                "ON cercados(eliminado)");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_cercados_fecha_actualizacion " +
+                "ON cercados(fecha_actualizacion)");
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS censo_cercados (" +
+                "id TEXT PRIMARY KEY, " +
+                "id_cercado TEXT NOT NULL, " +
+                "id_explotacion_uuid TEXT NOT NULL, " +
+                "fecha TEXT NOT NULL, " +
+                "vacas INTEGER NOT NULL DEFAULT 0, " +
+                "terneros INTEGER NOT NULL DEFAULT 0, " +
+                "toros INTEGER NOT NULL DEFAULT 0, " +
+                "novillas INTEGER NOT NULL DEFAULT 0, " +
+                "observaciones TEXT, " +
+                "sincronizado INTEGER NOT NULL DEFAULT 0, " +
+                "eliminado INTEGER NOT NULL DEFAULT 0, " +
+                "fecha_actualizacion TEXT NOT NULL, " +
+                "fecha_eliminado TEXT, " +
+                "FOREIGN KEY(id_cercado) REFERENCES cercados(id), " +
+                "FOREIGN KEY(id_explotacion_uuid) REFERENCES explotaciones(id)" +
+                ");");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_censo_cercados_cercado " +
+                "ON censo_cercados(id_cercado)");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_censo_cercados_explotacion " +
+                "ON censo_cercados(id_explotacion_uuid)");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_censo_cercados_fecha " +
+                "ON censo_cercados(fecha)");
+
+        db.execSQL("CREATE INDEX IF NOT EXISTS idx_censo_cercados_eliminado " +
+                "ON censo_cercados(eliminado)");
+
     }
 
 
@@ -259,13 +324,17 @@ public class DBHelper extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS diagnosticos_gestacion");
         db.execSQL("DROP TABLE IF EXISTS notas_animales");
         db.execSQL("DROP TABLE IF EXISTS pesos_animales");
-        db.execSQL("DROP TABLE IF EXISTS eventos_reproductivos");
+        try {
+            db.execSQL("ALTER TABLE eventos_reproductivos ADD COLUMN origen TEXT DEFAULT 'APP'");
+        } catch (Exception ignored) {}
         db.execSQL("DROP TABLE IF EXISTS crotales_disponibles");
         db.execSQL("DROP TABLE IF EXISTS lista_animales_detalle");
         db.execSQL("DROP TABLE IF EXISTS listas_animales");
         if (oldVersion < DATABASE_VERSION) {
             db.execSQL("ALTER TABLE lista_animales_detalle ADD COLUMN marcado INTEGER DEFAULT 0");
         }
+        db.execSQL("DROP TABLE IF EXISTS cercados");
+        db.execSQL("DROP TABLE IF EXISTS censo_cercados");
         onCreate(db);
     }
 
@@ -326,96 +395,6 @@ public class DBHelper extends SQLiteOpenHelper {
         db.close();
     }
 
-    public int contarAnimales() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        android.database.Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM animales", null);
-
-        int total = 0;
-        if (cursor.moveToFirst()) {
-            total = cursor.getInt(0);
-        }
-
-        cursor.close();
-        db.close();
-        return total;
-    }
-
-    public String obtenerMaxFechaActualizacionAnimales() {
-        SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = null;
-        String fecha = null;
-
-        try {
-            cursor = db.rawQuery("SELECT MAX(fecha_actualizacion) FROM animales", null);
-            if (cursor.moveToFirst()) {
-                fecha = cursor.getString(0);
-            }
-        } finally {
-            if (cursor != null) cursor.close();
-            db.close();
-        }
-
-        return fecha;
-    }
-
-    public List<Animal> obtenerAnimalesPorExplotacion(String idExplotacion) {
-        List<com.example.vacasymas.data.models.Animal> lista = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        Cursor cursor = db.rawQuery(
-                "SELECT * FROM animales " +
-                        "WHERE id_explotacion_uuid = ? AND eliminado = 0 " +
-                        "ORDER BY crotal ASC",
-                new String[]{idExplotacion}
-        );
-
-        if (cursor.moveToFirst()) {
-            do {
-                lista.add(cursorToAnimal(cursor));
-            } while (cursor.moveToNext());
-        }
-
-        cursor.close();
-        return lista;
-    }
-
-    public List<Animal> obtenerAnimalesNoSincronizados() {
-        List<com.example.vacasymas.data.models.Animal> lista = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        Cursor cursor = db.rawQuery(
-                "SELECT * FROM animales WHERE sincronizado = 0",
-                null
-        );
-
-        if (cursor.moveToFirst()) {
-            do {
-                lista.add(cursorToAnimal(cursor));
-            } while (cursor.moveToNext());
-        }
-
-        cursor.close();
-        return lista;
-    }
-
-    public int marcarAnimalComoSincronizado(String id) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put("sincronizado", 1);
-
-        return db.update("animales", values, "id = ?", new String[]{id});
-    }
-
-    public int eliminarAnimalLogico(String idAnimal, String fechaEliminado) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put("eliminado", 1);
-        values.put("sincronizado", 0);
-        values.put("fecha_eliminado", fechaEliminado);
-
-        return db.update("animales", values, "id = ?", new String[]{idAnimal});
-    }
-
     private Animal cursorToAnimal(Cursor cursor) {
         Animal animal = new Animal();
 
@@ -463,20 +442,6 @@ public class DBHelper extends SQLiteOpenHelper {
 
 
         return animal;
-    }
-
-    public String obtenerMaxFechaActualizacionExplotaciones() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT MAX(fecha_actualizacion) FROM explotaciones", null);
-
-        String fecha = null;
-        if (cursor.moveToFirst()) {
-            fecha = cursor.getString(0);
-        }
-
-        cursor.close();
-        db.close();
-        return fecha;
     }
 
     public java.util.List<Explotacion> obtenerListaExplotacionesActivasPorUsuario(String idUsuario) {
@@ -853,44 +818,6 @@ public class DBHelper extends SQLiteOpenHelper {
         return 0;
     }
 
-    public ArrayList<Animal> obtenerVacasDiagnosticadasHoy(String idExplotacionUuid, String fecha) {
-        ArrayList<Animal> lista = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = null;
-
-        try {
-            cursor = db.rawQuery(
-                    "SELECT a.id, a.crotal, a.id_explotacion_uuid, a.estatus, " +
-                            "d.resultado AS estado_diagnostico " +
-                            "FROM diagnosticos_gestacion d " +
-                            "INNER JOIN animales a ON a.id = d.id_animal " +
-                            "WHERE d.id_explotacion_uuid = ? " +
-                            "AND d.fecha = ? " +
-                            "AND d.eliminado = 0 " +
-                            "ORDER BY d.fecha_actualizacion DESC",
-                    new String[]{idExplotacionUuid, fecha}
-            );
-
-            if (cursor.moveToFirst()) {
-                do {
-                    Animal animal = new Animal();
-                    animal.setId(cursor.getString(cursor.getColumnIndexOrThrow("id")));
-                    animal.setCrotal(cursor.getString(cursor.getColumnIndexOrThrow("crotal")));
-                    animal.setIdExplotacionUuid(cursor.getString(cursor.getColumnIndexOrThrow("id_explotacion_uuid")));
-                    animal.setEstatus(cursor.getInt(cursor.getColumnIndexOrThrow("estatus")));
-                    animal.setEstadoReproductivo(cursor.getString(cursor.getColumnIndexOrThrow("estado_diagnostico")));
-
-                    lista.add(animal);
-
-                } while (cursor.moveToNext());
-            }
-
-        } finally {
-            if (cursor != null) cursor.close();
-        }
-
-        return lista;
-    }
 
     public ArrayList<DiagnosticoGestacion> obtenerDiagnosticosGestacionNoSincronizados() {
         ArrayList<DiagnosticoGestacion> lista = new ArrayList<>();
@@ -1539,53 +1466,7 @@ public class DBHelper extends SQLiteOpenHelper {
     //************EVENTOS REPRODUCTIVOS***************
     //***********************************************
 
-    public boolean insertarOActualizarEventoReproductivo(EventoReproductivo e) {
-        SQLiteDatabase db = this.getWritableDatabase();
-        boolean ok = false;
 
-        try {
-            ContentValues values = new ContentValues();
-
-            values.put("id", e.getId());
-            values.put("id_madre", e.getIdMadre());
-            values.put("id_cria", e.getIdCria());
-            values.put("id_explotacion_uuid", e.getIdExplotacionUuid());
-            values.put("tipo_evento", e.getTipoEvento());
-            values.put("fecha_evento", e.getFechaEvento());
-            values.put("resultado_cria", e.getResultadoCria());
-            values.put("cria_identificada", e.getCriaIdentificada() != null ? e.getCriaIdentificada() : 0);
-            values.put("sexo_estimado", e.getSexoEstimado());
-            values.put("raza_estimada", e.getRazaEstimada());
-            values.put("capa_estimada", e.getCapaEstimada());
-            values.put("cercado", e.getCercado());
-            values.put("observaciones", e.getObservaciones());
-            values.put("sincronizado", e.getSincronizado() != null ? e.getSincronizado() : 0);
-            values.put("eliminado", e.getEliminado() != null ? e.getEliminado() : 0);
-            values.put("fecha_actualizacion", e.getFechaActualizacion());
-            values.put("fecha_eliminado", e.getFechaEliminado());
-
-            int filas = db.update(
-                    "eventos_reproductivos",
-                    values,
-                    "id = ?",
-                    new String[]{e.getId()}
-            );
-
-            if (filas == 0) {
-                long insert = db.insert("eventos_reproductivos", null, values);
-                ok = insert != -1;
-            } else {
-                ok = true;
-            }
-
-        } catch (Exception ex) {
-            android.util.Log.e("DBHelper", "Error insertando/actualizando evento reproductivo", ex);
-        } finally {
-            db.close();
-        }
-
-        return ok;
-    }
     public boolean registrarPartoPendienteCrotal(EventoReproductivo evento) {
         SQLiteDatabase db = this.getWritableDatabase();
         boolean ok = false;
@@ -1705,6 +1586,7 @@ public class DBHelper extends SQLiteOpenHelper {
         e.setEliminado(cursor.getInt(cursor.getColumnIndexOrThrow("eliminado")));
         e.setFechaActualizacion(cursor.getString(cursor.getColumnIndexOrThrow("fecha_actualizacion")));
         e.setFechaEliminado(cursor.getString(cursor.getColumnIndexOrThrow("fecha_eliminado")));
+        e.setOrigen(cursor.getString(cursor.getColumnIndexOrThrow("origen")));
 
         return e;
     }
@@ -2607,28 +2489,6 @@ public class DBHelper extends SQLiteOpenHelper {
         return filas > 0;
     }
 
-    public Animal buscarAnimalPorCrotalParcial(String texto, String idExplotacionUuid) {
-        SQLiteDatabase db = this.getReadableDatabase();
-
-        Cursor cursor = db.rawQuery(
-                "SELECT * FROM animales " +
-                        "WHERE id_explotacion_uuid = ? " +
-                        "AND eliminado = 0 " +
-                        "AND statecode = '1' " +
-                        "AND crotal LIKE ? " +
-                        "LIMIT 1",
-                new String[]{idExplotacionUuid, "%" + texto}
-        );
-
-        Animal animal = null;
-
-        if (cursor.moveToFirst()) {
-            animal = cursorToAnimal(cursor);
-        }
-
-        cursor.close();
-        return animal;
-    }
 
     public List<AnimalEnLista> obtenerAnimalesDeListaPorSexo(String idLista,
                                                              String sexo) {
@@ -2929,4 +2789,886 @@ public class DBHelper extends SQLiteOpenHelper {
             db.close();
         }
     }
+
+    public List<AnimalEnLista> obtenerDetallesListaNoSincronizados() {
+
+        List<AnimalEnLista> lista = new ArrayList<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT * FROM lista_animales_detalle " +
+                        "WHERE sincronizado = 0",
+                null
+        );
+
+        while (cursor.moveToNext()) {
+
+            AnimalEnLista item = new AnimalEnLista();
+
+            item.setIdDetalle(
+                    cursor.getString(cursor.getColumnIndexOrThrow("id"))
+            );
+
+            item.setIdLista(
+                    cursor.getString(cursor.getColumnIndexOrThrow("id_lista"))
+            );
+
+            item.setIdAnimal(
+                    cursor.getString(cursor.getColumnIndexOrThrow("id_animal"))
+            );
+
+            item.setCrotal(
+                    cursor.getString(cursor.getColumnIndexOrThrow("crotal"))
+            );
+
+            item.setSexo(
+                    cursor.getString(cursor.getColumnIndexOrThrow("sexo"))
+            );
+
+            item.setMarcado(
+                    cursor.getInt(cursor.getColumnIndexOrThrow("marcado"))
+            );
+
+            item.setFechaAlta(
+                    cursor.getString(cursor.getColumnIndexOrThrow("fecha_alta"))
+            );
+
+            item.setObservaciones(
+                    cursor.getString(cursor.getColumnIndexOrThrow("observaciones"))
+            );
+
+            item.setSincronizado(
+                    cursor.getInt(cursor.getColumnIndexOrThrow("sincronizado"))
+            );
+
+            item.setEliminado(
+                    cursor.getInt(cursor.getColumnIndexOrThrow("eliminado"))
+            );
+
+            item.setFechaActualizacion(
+                    cursor.getString(cursor.getColumnIndexOrThrow("fecha_actualizacion"))
+            );
+
+            item.setFechaEliminado(
+                    cursor.getString(cursor.getColumnIndexOrThrow("fecha_eliminado"))
+            );
+
+            lista.add(item);
+        }
+
+        cursor.close();
+        db.close();
+
+        return lista;
+    }
+
+    public String obtenerUltimaFechaSyncListaAnimalesDetalle() {
+
+        SharedPreferences prefs =
+                context.getSharedPreferences(
+                        "sync_prefs",
+                        Context.MODE_PRIVATE
+                );
+
+        return prefs.getString(
+                "ultima_sync_lista_animales_detalle",
+                null
+        );
+    }
+
+    public void guardarUltimaFechaSyncListaAnimalesDetalle(String fecha) {
+
+        SharedPreferences prefs =
+                context.getSharedPreferences(
+                        "sync_prefs",
+                        Context.MODE_PRIVATE
+                );
+
+        prefs.edit()
+                .putString(
+                        "ultima_sync_lista_animales_detalle",
+                        fecha
+                )
+                .apply();
+    }
+
+    public String obtenerUltimaFechaSyncListasAnimales() {
+
+        SharedPreferences prefs =
+                context.getSharedPreferences(
+                        "sync_prefs",
+                        Context.MODE_PRIVATE
+                );
+
+        return prefs.getString(
+                "ultima_sync_listas_animales",
+                null
+        );
+    }
+
+    public void guardarUltimaFechaSyncListasAnimales(String fecha) {
+
+        SharedPreferences prefs =
+                context.getSharedPreferences(
+                        "sync_prefs",
+                        Context.MODE_PRIVATE
+                );
+
+        prefs.edit()
+                .putString(
+                        "ultima_sync_listas_animales",
+                        fecha
+                )
+                .apply();
+    }
+
+    public List<Animal> obtenerAnimalesFiltrados(String idExplotacion, FiltroAnimales filtro) {
+
+        List<Animal> lista = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        StringBuilder sql = new StringBuilder();
+        List<String> args = new ArrayList<>();
+
+        sql.append("SELECT * FROM animales ");
+        sql.append("WHERE eliminado = 0 ");
+        sql.append("AND statecode != '0' ");
+        sql.append("AND id_explotacion_uuid = ? ");
+
+        args.add(idExplotacion);
+
+        if (filtro.getEstatus() != null) {
+            sql.append("AND estatus = ? ");
+            args.add(String.valueOf(filtro.getEstatus()));
+        }
+
+        if (filtro.getSexo() != null) {
+            sql.append("AND sexo = ? ");
+            args.add(filtro.getSexo());
+        }
+
+        if (filtro.getEstadoReproductivo() != null) {
+            sql.append("AND estado_reproductivo = ? ");
+            args.add(filtro.getEstadoReproductivo());
+        }
+
+        if (filtro.getCercado() != null) {
+            sql.append("AND cercado = ? ");
+            args.add(filtro.getCercado());
+        }
+
+        if (Boolean.TRUE.equals(filtro.getSinCrotalIzquierdo())) {
+            sql.append("AND crotal_izquierdo_presente = 0 ");
+        }
+
+        if (Boolean.TRUE.equals(filtro.getSinCrotalDerecho())) {
+            sql.append("AND crotal_derecho_presente = 0 ");
+        }
+
+        if (filtro.getEdadMinimaMeses() != null) {
+            sql.append("AND fecha_nacimiento <= date('now', ?) ");
+            args.add("-" + filtro.getEdadMinimaMeses() + " months");
+        }
+
+        if (filtro.getEdadMaximaMeses() != null) {
+            sql.append("AND fecha_nacimiento >= date('now', ?) ");
+            args.add("-" + filtro.getEdadMaximaMeses() + " months");
+        }
+
+        if (filtro.getEdadMinimaAnios() != null) {
+            sql.append("AND fecha_nacimiento <= date('now', ?) ");
+            args.add("-" + filtro.getEdadMinimaAnios() + " years");
+        }
+
+        if (filtro.getEdadMaximaAnios() != null) {
+            sql.append("AND fecha_nacimiento >= date('now', ?) ");
+            args.add("-" + filtro.getEdadMaximaAnios() + " years");
+        }
+
+        sql.append("ORDER BY crotal ASC");
+
+        Cursor cursor = db.rawQuery(sql.toString(), args.toArray(new String[0]));
+
+        if (cursor.moveToFirst()) {
+            do {
+                Animal animal = cursorToAnimal(cursor);
+                lista.add(animal);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return lista;
+    }
+
+    public List<String> obtenerCercadosDeExplotacion(String idExplotacion) {
+
+        List<String> lista = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT DISTINCT cercado FROM animales " +
+                        "WHERE eliminado = 0 " +
+                        "AND id_explotacion_uuid = ? " +
+                        "AND cercado IS NOT NULL " +
+                        "AND cercado != '' " +
+                        "ORDER BY cercado ASC",
+                new String[]{idExplotacion}
+        );
+
+        if (cursor.moveToFirst()) {
+            do {
+                lista.add(cursor.getString(0));
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return lista;
+    }
+
+    public List<Animal> obtenerAnimalesPorIds(List<String> ids) {
+
+        List<Animal> lista = new ArrayList<>();
+
+        if (ids == null || ids.isEmpty()) {
+            return lista;
+        }
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        StringBuilder placeholders = new StringBuilder();
+
+        for (int i = 0; i < ids.size(); i++) {
+            placeholders.append("?");
+            if (i < ids.size() - 1) {
+                placeholders.append(",");
+            }
+        }
+
+        String sql = "SELECT * FROM animales WHERE id IN (" + placeholders + ") ORDER BY crotal ASC";
+
+        Cursor cursor = db.rawQuery(sql, ids.toArray(new String[0]));
+
+        if (cursor.moveToFirst()) {
+            do {
+                Animal animal = cursorToAnimal(cursor);
+                lista.add(animal);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+
+        return lista;
+    }
+
+    public boolean crearListadoDesdeAnimales(String nombre, String idExplotacion, List<Animal> animales) {
+
+        if (animales == null || animales.isEmpty()) {
+            return false;
+        }
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        String idListado = java.util.UUID.randomUUID().toString();
+        String fechaActual = FechaUtils.ahoraIso();
+
+        db.beginTransaction();
+
+        try {
+            ContentValues valuesListado = new ContentValues();
+            valuesListado.put("id", idListado);
+            valuesListado.put("nombre", nombre);
+            valuesListado.put("id_explotacion_uuid", idExplotacion);
+            valuesListado.put("tipo", "FILTRO");
+            valuesListado.put("fecha_creacion", fechaActual);
+            valuesListado.put("sincronizado", 0);
+            valuesListado.put("eliminado", 0);
+            valuesListado.put("fecha_actualizacion", fechaActual);
+
+            db.insertOrThrow("listas_animales", null, valuesListado);
+
+            for (Animal animal : animales) {
+                ContentValues valuesDetalle = new ContentValues();
+                valuesDetalle.put("id", java.util.UUID.randomUUID().toString());
+                valuesDetalle.put("id_lista", idListado);
+                valuesDetalle.put("id_animal", animal.getId());
+                valuesDetalle.put("crotal", animal.getCrotal());
+                valuesDetalle.put("sexo", animal.getSexo());
+                valuesDetalle.put("sincronizado", 0);
+                valuesDetalle.put("eliminado", 0);
+                valuesDetalle.put("fecha_actualizacion", fechaActual);
+
+                db.insertOrThrow("lista_animales_detalle", null, valuesDetalle);
+            }
+
+            db.setTransactionSuccessful();
+            return true;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    private List<Animal> ejecutarConsultaAnimales(String sql, String[] args) {
+
+        List<Animal> lista = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(sql, args);
+
+        if (cursor.moveToFirst()) {
+            do {
+                lista.add(cursorToAnimal(cursor));
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return lista;
+    }
+
+    public List<Animal> obtenerAnimalesFaltaCrotal(String idExplotacion) {
+
+        String sql =
+                "SELECT * FROM animales " +
+                        "WHERE eliminado = 0 " +
+                        "AND statecode != '0' " +
+                        "AND id_explotacion_uuid = ? " +
+                        "AND (crotal_izquierdo_presente = 0 OR crotal_derecho_presente = 0) " +
+                        "ORDER BY crotal ASC";
+
+        return ejecutarConsultaAnimales(sql, new String[]{idExplotacion});
+    }
+
+    public List<Animal> obtenerVacasViejas(String idExplotacion) {
+
+        String sql =
+                "SELECT * FROM animales " +
+                        "WHERE eliminado = 0 " +
+                        "AND statecode != '0' " +
+                        "AND id_explotacion_uuid = ? " +
+                        "AND estatus = 10003 " +
+                        "AND fecha_nacimiento IS NOT NULL " +
+                        "AND fecha_nacimiento != '' " +
+                        "AND fecha_nacimiento <= date('now', '-14 years') " +
+                        "ORDER BY fecha_nacimiento ASC";
+
+        return ejecutarConsultaAnimales(sql, new String[]{idExplotacion});
+    }
+
+    public List<Animal> obtenerTernerosParideraActual(String idExplotacion) {
+
+        String parideraActual = ParideraUtils.obtenerParideraActual();
+
+        String sql =
+                "SELECT * FROM animales " +
+                        "WHERE eliminado = 0 " +
+                        "AND statecode != '0' " +
+                        "AND id_explotacion_uuid = ? " +
+                        "AND estatus IN (10001, 10002) " +
+                        "AND paridera = ? " +
+                        "ORDER BY sexo ASC, crotal ASC";
+
+        return ejecutarConsultaAnimales(sql, new String[]{idExplotacion, parideraActual});
+    }
+
+    public List<Animal> obtenerVacasVaciasParideraActual(String idExplotacion) {
+
+        String parideraActual = ParideraUtils.obtenerParideraActual();
+        String fechaInicio = ParideraUtils.obtenerFechaInicioParidera(parideraActual);
+        String fechaFin = ParideraUtils.obtenerFechaFinParidera(parideraActual);
+
+        String sql =
+                "SELECT * FROM animales a " +
+                        "WHERE a.eliminado = 0 " +
+                        "AND a.statecode != '0' " +
+                        "AND a.id_explotacion_uuid = ? " +
+                        "AND a.estatus = 10003 " +
+                        "AND NOT EXISTS ( " +
+                        "   SELECT 1 FROM eventos_reproductivos e " +
+                        "   WHERE e.eliminado = 0 " +
+                        "   AND e.id_madre = a.id " +
+                        "   AND e.id_explotacion_uuid = a.id_explotacion_uuid " +
+                        "   AND e.tipo_evento = 'PARTO' " +
+                        "   AND e.fecha_evento BETWEEN ? AND ? " +
+                        ") " +
+                        "ORDER BY a.crotal ASC";
+
+        return ejecutarConsultaAnimales(sql, new String[]{
+                idExplotacion,
+                fechaInicio,
+                fechaFin
+        });
+    }
+
+    public List<Animal> obtenerVacasSinParirDosAnos(String idExplotacion) {
+
+        String fechaLimite = ParideraUtils.obtenerFechaHaceDosAnos();
+
+        String sql =
+                "SELECT * FROM animales a " +
+                        "WHERE a.eliminado = 0 " +
+                        "AND a.statecode != '0' " +
+                        "AND a.id_explotacion_uuid = ? " +
+                        "AND a.estatus = 10003 " +
+                        "AND NOT EXISTS ( " +
+                        "   SELECT 1 FROM eventos_reproductivos e " +
+                        "   WHERE e.eliminado = 0 " +
+                        "   AND e.id_madre = a.id " +
+                        "   AND e.id_explotacion_uuid = a.id_explotacion_uuid " +
+                        "   AND e.tipo_evento = 'PARTO' " +
+                        "   AND e.fecha_evento >= ? " +
+                        ") " +
+                        "ORDER BY a.crotal ASC";
+
+        return ejecutarConsultaAnimales(sql, new String[]{
+                idExplotacion,
+                fechaLimite
+        });
+    }
+
+
+    public int migrarPartosHistoricosDesdeAnimales(String idExplotacion) {
+
+        SQLiteDatabase db = this.getWritableDatabase();
+        int insertados = 0;
+
+        String fechaActual = FechaUtils.ahoraIso();
+
+        db.beginTransaction();
+
+        try {
+            String sql =
+                    "SELECT cria.id AS id_cria, " +
+                            "cria.crotal AS crotal_cria, " +
+                            "cria.fecha_nacimiento AS fecha_nacimiento, " +
+                            "cria.sexo AS sexo_cria, " +
+                            "cria.raza AS raza_cria, " +
+                            "cria.capa AS capa_cria, " +
+                            "cria.cercado AS cercado_cria, " +
+                            "madre.id AS id_madre " +
+                            "FROM animales cria " +
+                            "INNER JOIN animales madre " +
+                            "ON madre.crotal = cria.crotal_madre " +
+                            "WHERE cria.eliminado = 0 " +
+                            "AND madre.eliminado = 0 " +
+                            "AND cria.id_explotacion_uuid = ? " +
+                            "AND madre.id_explotacion_uuid = cria.id_explotacion_uuid " +
+                            "AND cria.crotal_madre IS NOT NULL " +
+                            "AND cria.crotal_madre != '' " +
+                            "AND cria.fecha_nacimiento IS NOT NULL " +
+                            "AND cria.fecha_nacimiento != '' ";
+
+            Cursor cursor = db.rawQuery(sql, new String[]{idExplotacion});
+
+            if (cursor.moveToFirst()) {
+                do {
+                    String idCria = cursor.getString(cursor.getColumnIndexOrThrow("id_cria"));
+                    String idMadre = cursor.getString(cursor.getColumnIndexOrThrow("id_madre"));
+                    String fechaNacimiento = cursor.getString(cursor.getColumnIndexOrThrow("fecha_nacimiento"));
+                    String sexoCria = cursor.getString(cursor.getColumnIndexOrThrow("sexo_cria"));
+                    String razaCria = cursor.getString(cursor.getColumnIndexOrThrow("raza_cria"));
+                    String capaCria = cursor.getString(cursor.getColumnIndexOrThrow("capa_cria"));
+                    String cercadoCria = cursor.getString(cursor.getColumnIndexOrThrow("cercado_cria"));
+
+                    boolean existe = existeEventoHistoricoParaCria(db, idCria);
+
+                    if (existe) {
+                        continue;
+                    }
+
+                    ContentValues values = new ContentValues();
+                    values.put("id", java.util.UUID.randomUUID().toString());
+                    values.put("id_madre", idMadre);
+                    values.put("id_cria", idCria);
+                    values.put("id_explotacion_uuid", idExplotacion);
+                    values.put("tipo_evento", "PARTO");
+                    values.put("fecha_evento", fechaNacimiento);
+                    values.put("resultado_cria", "VIVA_IDENTIFICADA");
+                    values.put("cria_identificada", 1);
+                    values.put("sexo_estimado", sexoCria);
+                    values.put("raza_estimada", razaCria);
+                    values.put("capa_estimada", capaCria);
+                    values.put("cercado", cercadoCria);
+                    values.put("observaciones", "Parto histórico migrado desde animales");
+                    values.put("sincronizado", 0);
+                    values.put("eliminado", 0);
+                    values.put("fecha_actualizacion", fechaActual);
+                    values.put("fecha_eliminado", (String) null);
+                    values.put("origen", "MIGRACION_ANIMALES");
+
+                    db.insertOrThrow("eventos_reproductivos", null, values);
+                    insertados++;
+
+                } while (cursor.moveToNext());
+            }
+
+            cursor.close();
+
+            db.setTransactionSuccessful();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            insertados = -1;
+
+        } finally {
+            db.endTransaction();
+        }
+
+        return insertados;
+    }
+
+    private boolean existeEventoHistoricoParaCria(SQLiteDatabase db, String idCria) {
+
+        Cursor cursor = db.rawQuery(
+                "SELECT id FROM eventos_reproductivos " +
+                        "WHERE id_cria = ? " +
+                        "AND eliminado = 0 " +
+                        "LIMIT 1",
+                new String[]{idCria}
+        );
+
+        boolean existe = cursor.moveToFirst();
+
+        cursor.close();
+
+        return existe;
+    }
+
+    public List<Animal> obtenerTernerosPorParidera(String idExplotacion, String paridera) {
+
+        String sql =
+                "SELECT * FROM animales " +
+                        "WHERE eliminado = 0 " +
+                        "AND id_explotacion_uuid = ? " +
+                        "AND paridera = ? " +
+                        "ORDER BY  fecha_nacimiento ASC, crotal ASC";
+
+        return ejecutarConsultaAnimales(sql, new String[]{idExplotacion, paridera});
+    }
+
+    public List<Animal> obtenerTernerosFallecidosPorParidera(String idExplotacion, String paridera) {
+
+        String sql =
+                "SELECT * FROM animales " +
+                        "WHERE eliminado = 0 " +
+                        "AND id_explotacion_uuid = ? " +
+                        "AND paridera = ? " +
+                        "AND estatus = 10007 " +
+                        "ORDER BY  fecha_nacimiento ASC, crotal ASC";
+
+        return ejecutarConsultaAnimales(sql, new String[]{idExplotacion, paridera});
+    }
+
+    public List<Animal> obtenerTernerosStockPorParidera(String idExplotacion, String paridera) {
+
+        String sql =
+                "SELECT * FROM animales " +
+                        "WHERE eliminado = 0 " +
+                        "AND statecode != '0' " +
+                        "AND id_explotacion_uuid = ? " +
+                        "AND paridera = ? " +
+                        "AND estatus IN (10001, 10002) " +
+                        "ORDER BY fecha_nacimiento ASC, crotal ASC";
+
+        return ejecutarConsultaAnimales(sql, new String[]{idExplotacion, paridera});
+    }
+
+    public int contarAnimalesPorSexo(List<Animal> animales, String sexo) {
+        int total = 0;
+
+        if (animales == null) return 0;
+
+        for (Animal animal : animales) {
+            if (animal.getSexo() != null && animal.getSexo().equalsIgnoreCase(sexo)) {
+                total++;
+            }
+        }
+
+        return total;
+    }
+
+    public boolean darDeBajaAnimalesMasivo(
+            List<String> idsAnimales,
+            int nuevoEstatus,
+            String fechaBaja
+    ) {
+        if (idsAnimales == null || idsAnimales.isEmpty()) {
+            return false;
+        }
+
+        SQLiteDatabase db = this.getWritableDatabase();
+        String ahora = FechaUtils.ahoraIso();
+
+        db.beginTransaction();
+
+        try {
+            ContentValues values = new ContentValues();
+            values.put("statecode", "0");
+            values.put("estatus", nuevoEstatus);
+            values.put("fecha_baja_explotacion", fechaBaja);
+            values.put("sincronizado", 0);
+            values.put("fecha_actualizacion", ahora);
+
+            for (String idAnimal : idsAnimales) {
+                db.update(
+                        "animales",
+                        values,
+                        "id = ?",
+                        new String[]{idAnimal}
+                );
+            }
+
+            db.setTransactionSuccessful();
+            return true;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+
+        } finally {
+            db.endTransaction();
+        }
+    }
+
+    //**************************MANTENIMIENTOS*****************************************
+
+    public boolean insertarOActualizarCercado(Cercado cercado) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("id", cercado.getId());
+        values.put("id_explotacion_uuid", cercado.getIdExplotacionUuid());
+        values.put("nombre", cercado.getNombre());
+        values.put("superficie_ha", cercado.getSuperficieHa());
+        values.put("tipo", cercado.getTipo());
+        values.put("observaciones", cercado.getObservaciones());
+        values.put("activo", cercado.getActivo() != null ? cercado.getActivo() : 1);
+        values.put("sincronizado", cercado.getSincronizado() != null ? cercado.getSincronizado() : 0);
+        values.put("eliminado", cercado.getEliminado() != null ? cercado.getEliminado() : 0);
+        values.put("fecha_actualizacion", cercado.getFechaActualizacion());
+        values.put("fecha_eliminado", cercado.getFechaEliminado());
+
+        long result = db.insertWithOnConflict(
+                "cercados",
+                null,
+                values,
+                SQLiteDatabase.CONFLICT_REPLACE
+        );
+
+        return result != -1;
+    }
+
+    public List<Cercado> obtenerCercadosActivosPorExplotacion(String idExplotacionUuid) {
+        List<Cercado> lista = new ArrayList<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT * FROM cercados " +
+                        "WHERE id_explotacion_uuid = ? " +
+                        "AND eliminado = 0 " +
+                        "AND activo = 1 " +
+                        "ORDER BY nombre ASC",
+                new String[]{idExplotacionUuid}
+        );
+
+        if (cursor.moveToFirst()) {
+            do {
+                Cercado c = new Cercado();
+
+                c.setId(cursor.getString(cursor.getColumnIndexOrThrow("id")));
+                c.setIdExplotacionUuid(cursor.getString(cursor.getColumnIndexOrThrow("id_explotacion_uuid")));
+                c.setNombre(cursor.getString(cursor.getColumnIndexOrThrow("nombre")));
+
+                int idxSuperficie = cursor.getColumnIndexOrThrow("superficie_ha");
+                if (!cursor.isNull(idxSuperficie)) {
+                    c.setSuperficieHa(cursor.getDouble(idxSuperficie));
+                }
+
+                c.setTipo(cursor.getString(cursor.getColumnIndexOrThrow("tipo")));
+                c.setObservaciones(cursor.getString(cursor.getColumnIndexOrThrow("observaciones")));
+                c.setActivo(cursor.getInt(cursor.getColumnIndexOrThrow("activo")));
+                c.setSincronizado(cursor.getInt(cursor.getColumnIndexOrThrow("sincronizado")));
+                c.setEliminado(cursor.getInt(cursor.getColumnIndexOrThrow("eliminado")));
+                c.setFechaActualizacion(cursor.getString(cursor.getColumnIndexOrThrow("fecha_actualizacion")));
+                c.setFechaEliminado(cursor.getString(cursor.getColumnIndexOrThrow("fecha_eliminado")));
+
+                lista.add(c);
+
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+
+        return lista;
+    }
+
+    public Cercado obtenerCercadoPorId(String idCercado) {
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT * FROM cercados WHERE id = ? LIMIT 1",
+                new String[]{idCercado}
+        );
+
+        Cercado c = null;
+
+        if (cursor.moveToFirst()) {
+            c = new Cercado();
+
+            c.setId(cursor.getString(cursor.getColumnIndexOrThrow("id")));
+            c.setIdExplotacionUuid(cursor.getString(cursor.getColumnIndexOrThrow("id_explotacion_uuid")));
+            c.setNombre(cursor.getString(cursor.getColumnIndexOrThrow("nombre")));
+
+            int idxSuperficie = cursor.getColumnIndexOrThrow("superficie_ha");
+            if (!cursor.isNull(idxSuperficie)) {
+                c.setSuperficieHa(cursor.getDouble(idxSuperficie));
+            }
+
+            c.setTipo(cursor.getString(cursor.getColumnIndexOrThrow("tipo")));
+            c.setObservaciones(cursor.getString(cursor.getColumnIndexOrThrow("observaciones")));
+            c.setActivo(cursor.getInt(cursor.getColumnIndexOrThrow("activo")));
+            c.setSincronizado(cursor.getInt(cursor.getColumnIndexOrThrow("sincronizado")));
+            c.setEliminado(cursor.getInt(cursor.getColumnIndexOrThrow("eliminado")));
+            c.setFechaActualizacion(cursor.getString(cursor.getColumnIndexOrThrow("fecha_actualizacion")));
+            c.setFechaEliminado(cursor.getString(cursor.getColumnIndexOrThrow("fecha_eliminado")));
+        }
+
+        cursor.close();
+
+        return c;
+    }
+
+    public boolean eliminarCercadoLogico(String idCercado, String fechaActualizacion) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("eliminado", 1);
+        values.put("activo", 0);
+        values.put("sincronizado", 0);
+        values.put("fecha_eliminado", fechaActualizacion);
+        values.put("fecha_actualizacion", fechaActualizacion);
+
+        int filas = db.update(
+                "cercados",
+                values,
+                "id = ?",
+                new String[]{idCercado}
+        );
+
+        return filas > 0;
+    }
+
+
+    //****************************CERCADOS************************************
+
+    public boolean insertarOActualizarCensoCercado(CensoCercado censo) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("id", censo.getId());
+        values.put("id_cercado", censo.getIdCercado());
+        values.put("id_explotacion_uuid", censo.getIdExplotacionUuid());
+        values.put("fecha", censo.getFecha());
+        values.put("vacas", censo.getVacas() != null ? censo.getVacas() : 0);
+        values.put("terneros", censo.getTerneros() != null ? censo.getTerneros() : 0);
+        values.put("toros", censo.getToros() != null ? censo.getToros() : 0);
+        values.put("novillas", censo.getNovillas() != null ? censo.getNovillas() : 0);
+        values.put("observaciones", censo.getObservaciones());
+        values.put("sincronizado", censo.getSincronizado() != null ? censo.getSincronizado() : 0);
+        values.put("eliminado", censo.getEliminado() != null ? censo.getEliminado() : 0);
+        values.put("fecha_actualizacion", censo.getFechaActualizacion());
+        values.put("fecha_eliminado", censo.getFechaEliminado());
+
+        long result = db.insertWithOnConflict(
+                "censo_cercados",
+                null,
+                values,
+                SQLiteDatabase.CONFLICT_REPLACE
+        );
+
+        return result != -1;
+    }
+
+    public CensoCercado obtenerUltimoCensoPorCercado(String idCercado) {
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT * FROM censo_cercados " +
+                        "WHERE id_cercado = ? " +
+                        "AND eliminado = 0 " +
+                        "ORDER BY fecha DESC, fecha_actualizacion DESC " +
+                        "LIMIT 1",
+                new String[]{idCercado}
+        );
+
+        CensoCercado censo = null;
+
+        if (cursor.moveToFirst()) {
+            censo = mapearCensoCercado(cursor);
+        }
+
+        cursor.close();
+        return censo;
+    }
+
+    public List<CensoCercado> obtenerHistorialCensosCercado(String idCercado) {
+        List<CensoCercado> lista = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT * FROM censo_cercados " +
+                        "WHERE id_cercado = ? " +
+                        "AND eliminado = 0 " +
+                        "ORDER BY fecha DESC, fecha_actualizacion DESC",
+                new String[]{idCercado}
+        );
+
+        if (cursor.moveToFirst()) {
+            do {
+                lista.add(mapearCensoCercado(cursor));
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        return lista;
+    }
+
+    private CensoCercado mapearCensoCercado(Cursor cursor) {
+        CensoCercado c = new CensoCercado();
+
+        c.setId(cursor.getString(cursor.getColumnIndexOrThrow("id")));
+        c.setIdCercado(cursor.getString(cursor.getColumnIndexOrThrow("id_cercado")));
+        c.setIdExplotacionUuid(cursor.getString(cursor.getColumnIndexOrThrow("id_explotacion_uuid")));
+        c.setFecha(cursor.getString(cursor.getColumnIndexOrThrow("fecha")));
+        c.setVacas(cursor.getInt(cursor.getColumnIndexOrThrow("vacas")));
+        c.setTerneros(cursor.getInt(cursor.getColumnIndexOrThrow("terneros")));
+        c.setToros(cursor.getInt(cursor.getColumnIndexOrThrow("toros")));
+        c.setNovillas(cursor.getInt(cursor.getColumnIndexOrThrow("novillas")));
+        c.setObservaciones(cursor.getString(cursor.getColumnIndexOrThrow("observaciones")));
+        c.setSincronizado(cursor.getInt(cursor.getColumnIndexOrThrow("sincronizado")));
+        c.setEliminado(cursor.getInt(cursor.getColumnIndexOrThrow("eliminado")));
+        c.setFechaActualizacion(cursor.getString(cursor.getColumnIndexOrThrow("fecha_actualizacion")));
+        c.setFechaEliminado(cursor.getString(cursor.getColumnIndexOrThrow("fecha_eliminado")));
+
+        return c;
+    }
+
+    public List<CercadoConCenso> obtenerCercadosConUltimoCenso(String idExplotacionUuid) {
+        List<CercadoConCenso> lista = new ArrayList<>();
+
+        List<Cercado> cercados = obtenerCercadosActivosPorExplotacion(idExplotacionUuid);
+
+        for (Cercado cercado : cercados) {
+            CensoCercado ultimoCenso = obtenerUltimoCensoPorCercado(cercado.getId());
+            lista.add(new CercadoConCenso(cercado, ultimoCenso));
+        }
+
+        return lista;
+    }
+
 }

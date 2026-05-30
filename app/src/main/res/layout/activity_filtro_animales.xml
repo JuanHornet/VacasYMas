@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F5F5F5">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbarFiltros"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#6750A4"
+        android:title="Filtrar animales"
+        android:titleTextColor="@android:color/white"
+        app:navigationIcon="@drawable/ic_arrow_back" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tipo de animal"
+                android:textStyle="bold" />
+
+            <Spinner
+                android:id="@+id/spinnerTipoAnimal"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sexo"
+                android:textStyle="bold"
+                android:layout_marginTop="14dp" />
+
+            <Spinner
+                android:id="@+id/spinnerSexo"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Estado reproductivo"
+                android:textStyle="bold"
+                android:layout_marginTop="14dp" />
+
+            <Spinner
+                android:id="@+id/spinnerEstadoReproductivo"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cercado"
+                android:textStyle="bold"
+                android:layout_marginTop="14dp" />
+
+            <Spinner
+                android:id="@+id/spinnerCercado"
+                android:layout_width="match_parent"
+                android:layout_height="48dp" />
+
+            <CheckBox
+                android:id="@+id/checkSinCrotalIzquierdo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sin crotal izquierdo"
+                android:layout_marginTop="14dp" />
+
+            <CheckBox
+                android:id="@+id/checkSinCrotalDerecho"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Sin crotal derecho" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="14dp">
+
+                <EditText
+                    android:id="@+id/etEdadMinima"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Edad mín. meses"
+                    android:inputType="number" />
+
+                <EditText
+                    android:id="@+id/etEdadMaxima"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:hint="Edad máx. meses"
+                    android:inputType="number" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="14dp">
+
+                <EditText
+                    android:id="@+id/etEdadMinimaAnios"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Edad mín. años"
+                    android:inputType="number" />
+
+                <EditText
+                    android:id="@+id/etEdadMaximaAnios"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:hint="Edad máx. años"
+                    android:inputType="number" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+    <Button
+        android:id="@+id/btnVerAnimales"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Ver animales" />
+
+</LinearLayout>

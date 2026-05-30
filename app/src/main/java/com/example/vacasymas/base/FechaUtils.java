@@ -41,4 +41,48 @@ public class FechaUtils {
     public static long ahoraMillis() {
         return System.currentTimeMillis();
     }
+
+    public static int calcularEdadMeses(String fechaNacimiento) {
+
+        if (fechaNacimiento == null || fechaNacimiento.isEmpty()) {
+            return 0;
+        }
+
+        try {
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+
+            Date nacimiento = sdf.parse(fechaNacimiento);
+
+            long diferencia = new Date().getTime() - nacimiento.getTime();
+
+            long dias = diferencia / (1000L * 60 * 60 * 24);
+
+            return (int) (dias / 30);
+
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public static int calcularEdadDias(String fechaNacimiento) {
+
+        if (fechaNacimiento == null || fechaNacimiento.isEmpty()) {
+            return 0;
+        }
+
+        try {
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+
+            Date nacimiento = sdf.parse(fechaNacimiento);
+
+            long diferencia = new Date().getTime() - nacimiento.getTime();
+
+            return (int) (diferencia / (1000L * 60 * 60 * 24));
+
+        } catch (Exception e) {
+            return 0;
+        }
+    }
 }

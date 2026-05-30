@@ -1,10 +1,15 @@
 package com.example.vacasymas.ui.listados;
 
+import android.app.DatePickerDialog;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,6 +28,8 @@ import com.example.vacasymas.session.SessionManager;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class DetalleListaManualActivity extends AppCompatActivity {
@@ -32,9 +39,11 @@ public class DetalleListaManualActivity extends AppCompatActivity {
     private TextView tvAnimalesAnadidos;
     private RecyclerView rvAnimalesLista;
 
+
     private DBHelper dbHelper;
     private AnimalRepository animalRepository;
     private AnimalEnListaAdapter adapter;
+    private Button btnAccionesListado;
 
     private String idLista;
     private String nombreLista;
@@ -73,6 +82,7 @@ public class DetalleListaManualActivity extends AppCompatActivity {
         initBusquedaAutomatica();
         cargarAnimalesLista();
         initFiltrosSexo();
+        btnAccionesListado.setOnClickListener(v -> mostrarMenuAccionesListado());
     }
 
     private void initViews() {
@@ -85,6 +95,7 @@ public class DetalleListaManualActivity extends AppCompatActivity {
         rbMachos = findViewById(R.id.rbMachos);
         rbHembras = findViewById(R.id.rbHembras);
         tvResumenFiltro = findViewById(R.id.tvResumenFiltro);
+        btnAccionesListado = findViewById(R.id.btnAccionesListado);
     }
 
     private void configurarToolbar() {
@@ -363,6 +374,173 @@ public class DetalleListaManualActivity extends AppCompatActivity {
             cargarAnimalesListaFiltrada("Hembra");
         } else {
             cargarAnimalesLista();
+        }
+    }
+
+    private void mostrarMenuAccionesListado() {
+
+        String[] opciones = {
+                "Dar de baja animales"
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle("Acciones del listado")
+                .setItems(opciones, (dialog, which) -> {
+                    if (which == 0) {
+                        mostrarDialogoBajaMasiva();
+                    }
+                })
+                .show();
+    }
+
+    private void mostrarDialogoBajaMasiva() {
+
+        List<AnimalEnLista> animalesLista = dbHelper.obtenerAnimalesDeLista(idLista);
+
+        if (animalesLista == null || animalesLista.isEmpty()) {
+            Toast.makeText(this, "La lista no tiene animales", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        android.view.View view = getLayoutInflater()
+                .inflate(R.layout.dialog_baja_masiva_animales, null);
+
+        Spinner spMotivoBaja = view.findViewById(R.id.spMotivoBajaMasiva);
+        EditText etFechaBaja = view.findViewById(R.id.etFechaBajaMasiva);
+
+        String[] motivos = {
+                "Vendido",
+                "Fallecido",
+                "Desaparecido",
+                "Tuberculosis"
+        };
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                motivos
+        );
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spMotivoBaja.setAdapter(adapter);
+
+        final String[] fechaBajaIso = {null};
+
+        etFechaBaja.setOnClickListener(v -> {
+            Calendar calendar = Calendar.getInstance();
+
+            DatePickerDialog datePickerDialog = new DatePickerDialog(
+                    this,
+                    (datePicker, year, month, dayOfMonth) -> {
+
+                        String fechaVisible = String.format(
+                                java.util.Locale.getDefault(),
+                                "%02d/%02d/%04d",
+                                dayOfMonth,
+                                month + 1,
+                                year
+                        );
+
+                        String fechaIso = String.format(
+                                java.util.Locale.getDefault(),
+                                "%04d-%02d-%02d",
+                                year,
+                                month + 1,
+                                dayOfMonth
+                        );
+
+                        etFechaBaja.setText(fechaVisible);
+                        fechaBajaIso[0] = fechaIso;
+                    },
+                    calendar.get(Calendar.YEAR),
+                    calendar.get(Calendar.MONTH),
+                    calendar.get(Calendar.DAY_OF_MONTH)
+            );
+
+            datePickerDialog.show();
+        });
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Dar de baja animales")
+                .setMessage("Se darán de baja " + animalesLista.size() + " animales de esta lista.")
+                .setView(view)
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton("Continuar", null)
+                .create();
+
+        dialog.setOnShowListener(d -> {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+
+                if (fechaBajaIso[0] == null) {
+                    Toast.makeText(this, "Selecciona la fecha de baja", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                String motivo = spMotivoBaja.getSelectedItem().toString();
+                int nuevoEstatus = obtenerCodigoBaja(motivo);
+
+                confirmarBajaMasiva(animalesLista, nuevoEstatus, fechaBajaIso[0], motivo, dialog);
+            });
+        });
+
+        dialog.show();
+    }
+
+    private void confirmarBajaMasiva(
+            List<AnimalEnLista> animalesLista,
+            int nuevoEstatus,
+            String fechaBajaIso,
+            String motivo,
+            AlertDialog dialogAnterior
+    ) {
+        new AlertDialog.Builder(this)
+                .setTitle("Confirmar baja masiva")
+                .setMessage(
+                        "Vas a dar de baja "
+                                + animalesLista.size()
+                                + " animales.\n\nMotivo: "
+                                + motivo
+                                + "\nFecha: "
+                                + FechaUtils.formatearFecha(fechaBajaIso)
+                                + "\n\n¿Continuar?"
+                )
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton("Dar de baja", (dialog, which) -> {
+
+                    ArrayList<String> idsAnimales = new ArrayList<>();
+
+                    for (AnimalEnLista animal : animalesLista) {
+                        idsAnimales.add(animal.getIdAnimal());
+                    }
+
+                    boolean ok = dbHelper.darDeBajaAnimalesMasivo(
+                            idsAnimales,
+                            nuevoEstatus,
+                            fechaBajaIso
+                    );
+
+                    if (ok) {
+                        Toast.makeText(this, "Animales dados de baja", Toast.LENGTH_SHORT).show();
+                        dialogAnterior.dismiss();
+                        cargarSegunFiltroActual();
+                    } else {
+                        Toast.makeText(this, "Error al dar de baja animales", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .show();
+    }
+
+    private int obtenerCodigoBaja(String motivo) {
+        switch (motivo) {
+            case "Vendido":
+                return 10006;
+            case "Fallecido":
+                return 10007;
+            case "Desaparecido":
+                return 10008;
+            case "Tuberculosis":
+                return 10010;
+            default:
+                return 10006;
         }
     }
 }

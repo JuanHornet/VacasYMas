@@ -48,30 +48,37 @@ public class EventoReproductivoRepository {
                 return true;
             }
 
-            JsonArray jsonArray = construirJsonEventos(lista);
+            for (EventoReproductivo evento : lista) {
 
-            Response<Void> response = api.upsertEventos(
-                    "resolution=merge-duplicates,return=minimal",
-                    jsonArray
-            ).execute();
+                JsonArray jsonArray = new JsonArray();
+                jsonArray.add(construirJsonEvento(evento));
 
-            if (!response.isSuccessful()) {
-                String error = response.errorBody() != null
-                        ? response.errorBody().string()
-                        : "sin detalle";
+                Response<Void> response = api.upsertEventos(
+                        "resolution=merge-duplicates,return=minimal",
+                        jsonArray
+                ).execute();
 
-                Log.e(TAG, "Error HTTP subiendo eventos reproductivos: "
-                        + response.code() + " | " + error);
+                if (!response.isSuccessful()) {
 
-                return false;
-            }
+                    String error = response.errorBody() != null
+                            ? response.errorBody().string()
+                            : "sin detalle";
 
-            for (EventoReproductivo e : lista) {
-                dbHelper.marcarEventoReproductivoComoSincronizado(e.getId());
+                    Log.e(TAG,
+                            "Error subiendo evento reproductivo id="
+                                    + evento.getId()
+                                    + " | HTTP " + response.code()
+                                    + " | " + error);
+
+                    return false;
+                }
+
+                dbHelper.marcarEventoReproductivoComoSincronizado(evento.getId());
             }
 
             Log.d(TAG, "Eventos reproductivos subidos correctamente: " + lista.size());
             return true;
+
 
         } catch (Exception e) {
             Log.e(TAG, "Error subiendo eventos reproductivos", e);
@@ -171,6 +178,10 @@ public class EventoReproductivoRepository {
 
             putString(obj, "fecha_actualizacion", e.getFechaActualizacion());
             putString(obj, "fecha_eliminado", e.getFechaEliminado());
+            putString(obj, "origen",
+                    e.getOrigen() != null ? e.getOrigen() : "APP");
+
+            Log.d(TAG, "Evento subida: " + obj.toString());
 
             array.add(obj);
         }
@@ -192,5 +203,39 @@ public class EventoReproductivoRepository {
 
     public int contarCriasPendientesIdentificar(String idExplotacionUuid) {
         return dbHelper.contarCriasPendientesIdentificar(idExplotacionUuid);
+    }
+
+    private JsonObject construirJsonEvento(EventoReproductivo e) {
+        JsonObject obj = new JsonObject();
+
+        putString(obj, "id", e.getId());
+        putString(obj, "id_madre", e.getIdMadre());
+        putString(obj, "id_cria", e.getIdCria());
+        putString(obj, "id_explotacion_uuid", e.getIdExplotacionUuid());
+        putString(obj, "tipo_evento", e.getTipoEvento());
+        putString(obj, "fecha_evento", e.getFechaEvento());
+        putString(obj, "resultado_cria", e.getResultadoCria());
+
+        obj.addProperty("cria_identificada",
+                e.getCriaIdentificada() != null ? e.getCriaIdentificada() : 0);
+
+        putString(obj, "sexo_estimado", e.getSexoEstimado());
+        putString(obj, "raza_estimada", e.getRazaEstimada());
+        putString(obj, "capa_estimada", e.getCapaEstimada());
+        putString(obj, "cercado", e.getCercado());
+        putString(obj, "observaciones", e.getObservaciones());
+
+        obj.addProperty("sincronizado", 1);
+        obj.addProperty("eliminado", e.getEliminado() != null ? e.getEliminado() : 0);
+
+        putString(obj, "fecha_actualizacion", e.getFechaActualizacion());
+        putString(obj, "fecha_eliminado", e.getFechaEliminado());
+
+        putString(obj, "origen",
+                e.getOrigen() != null ? e.getOrigen() : "APP");
+
+        Log.d(TAG, "Evento subida individual: " + obj);
+
+        return obj;
     }
 }

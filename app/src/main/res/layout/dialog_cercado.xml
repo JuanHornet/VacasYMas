@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <EditText
+        android:id="@+id/etNombreCercado"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Nombre del cercado" />
+
+    <EditText
+        android:id="@+id/etSuperficie"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Superficie ha"
+        android:inputType="numberDecimal"
+        android:layout_marginTop="10dp" />
+
+    <Spinner
+        android:id="@+id/spTipoCercado"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp" />
+
+    <EditText
+        android:id="@+id/etObservaciones"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Observaciones"
+        android:minLines="2"
+        android:gravity="top"
+        android:layout_marginTop="10dp" />
+
+</LinearLayout>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <EditText
+        android:id="@+id/etVacas"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Vacas"
+        android:inputType="number" />
+
+    <EditText
+        android:id="@+id/etTerneros"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Terneros"
+        android:inputType="number"
+        android:layout_marginTop="8dp" />
+
+    <EditText
+        android:id="@+id/etToros"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Toros"
+        android:inputType="number"
+        android:layout_marginTop="8dp" />
+
+    <EditText
+        android:id="@+id/etNovillas"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Novillas"
+        android:inputType="number"
+        android:layout_marginTop="8dp" />
+
+    <EditText
+        android:id="@+id/etObservacionesCenso"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Observaciones"
+        android:minLines="2"
+        android:gravity="top"
+        android:layout_marginTop="12dp" />
+
+</LinearLayout>

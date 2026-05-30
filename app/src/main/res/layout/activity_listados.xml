@@ -16,56 +16,178 @@
         app:navigationIcon="@drawable/ic_arrow_back"
         app:navigationIconTint="@android:color/white" />
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="14dp">
+        android:fillViewport="true">
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardNuevoListado"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="90dp"
-            android:layout_marginBottom="12dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="3dp">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="14dp">
+
+            <!-- NUEVO LISTADO MANUAL -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardNuevoListado"
+                android:layout_width="match_parent"
+                android:layout_height="90dp"
+                android:layout_marginBottom="12dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="3dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:text="📋  Nuevo listado manual"
+                    android:textColor="@android:color/black"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- NUEVO LISTADO POR FILTROS -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardListadoFiltros"
+                android:layout_width="match_parent"
+                android:layout_height="90dp"
+                android:layout_marginBottom="12dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="3dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:text="🔎  Nuevo listado por filtros"
+                    android:textColor="@android:color/black"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ABRIR LISTADOS -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardAbrirListado"
+                android:layout_width="match_parent"
+                android:layout_height="90dp"
+                android:layout_marginBottom="20dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="3dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:paddingStart="20dp"
+                    android:paddingEnd="20dp"
+                    android:text="📂  Abrir listados"
+                    android:textColor="@android:color/black"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:paddingStart="20dp"
-                android:text="📋  Nuevo listado"
+                android:layout_height="wrap_content"
+                android:text="Listados rápidos"
                 android:textColor="@android:color/black"
-                android:textSize="21sp"
-                android:textStyle="bold" />
-        </com.google.android.material.card.MaterialCardView>
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="10dp" />
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/cardAbrirListado"
-            android:layout_width="match_parent"
-            android:layout_height="90dp"
-            android:layout_marginBottom="12dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="3dp">
-
-            <TextView
+            <GridLayout
+                android:id="@+id/gridListadosRapidos"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:gravity="center_vertical"
-                android:paddingStart="20dp"
-                android:text="📂  Abrir listado"
-                android:textColor="@android:color/black"
-                android:textSize="21sp"
-                android:textStyle="bold" />
-        </com.google.android.material.card.MaterialCardView>
+                android:layout_height="wrap_content"
+                android:columnCount="2"
+                android:useDefaultMargins="true">
 
-    </LinearLayout>
+                <!-- FALTA CROTAL -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardFaltaCrotal"
+                    style="@style/CardListadoRapido">
+
+                    <TextView
+                        style="@style/TextListadoRapido"
+                        android:text="🏷️\nFalta crotal" />
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- VACAS VIEJAS -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardVacasViejas"
+                    style="@style/CardListadoRapido">
+
+                    <TextView
+                        style="@style/TextListadoRapido"
+                        android:text="🐄\nVacas +14" />
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- VACAS VACÍAS -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardVacasVacias"
+                    style="@style/CardListadoRapido">
+
+                    <TextView
+                        style="@style/TextListadoRapido"
+                        android:text="⭕\nSin Parir" />
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- VACÍAS 2 AÑOS -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardVacasVaciasDosAnios"
+                    style="@style/CardListadoRapido">
+
+                    <TextView
+                        style="@style/TextListadoRapido"
+                        android:text="⚠️\nSin parir 2 años" />
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- TERNEROS PARIDERA -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardTernerosParidera"
+                    style="@style/CardListadoRapido">
+
+                    <TextView
+                        style="@style/TextListadoRapido"
+                        android:text="🐮\nTerneros paridera" />
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- EVENTOS PARIDERA -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cardEventosParidera"
+                    style="@style/CardListadoRapido">
+
+                    <TextView
+                        style="@style/TextListadoRapido"
+                        android:text="📅\nEventos paridera" />
+
+                </com.google.android.material.card.MaterialCardView>
+
+            </GridLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
 
 </LinearLayout>

@@ -22,6 +22,9 @@ public class SincronizadorGeneral {
 
         boolean crotalesOk = new SincronizadorCrotalesDisponibles(context).sincronizarTodo();
 
+        boolean listasOk = new SincronizadorListasAnimales(context).sincronizar();
+
+        boolean detalleListasOk = new SincronizadorListaAnimalesDetalle(context).sincronizar();
 
 
         if (!animalesOk) {
@@ -48,7 +51,9 @@ public class SincronizadorGeneral {
                         && diagnosticosGestacionOk
                         && notasAnimalesOk
                         && pesosOk
-                        && eventosReproductivosOk;
+                        && eventosReproductivosOk
+                        && listasOk
+                        && detalleListasOk;
 
         Log.d(TAG,
                 "=== Fin sincronización general. " +
@@ -59,6 +64,8 @@ public class SincronizadorGeneral {
                         " | Pesos OK: " + pesosOk +
                         " | Eventos reproductivos OK: " + eventosReproductivosOk +
                         " | Crotales OK: " + crotalesOk +
+                        " | Listas OK: " + listasOk +
+                        " | Detalle listas OK: " + detalleListasOk +
                         " ===");
 
         return resultado;

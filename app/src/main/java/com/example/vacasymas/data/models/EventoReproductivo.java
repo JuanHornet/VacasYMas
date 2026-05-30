@@ -58,6 +58,9 @@ public class EventoReproductivo {
     @SerializedName("fecha_eliminado")
     private String fechaEliminado;
 
+    @SerializedName("origen")
+    private String origen;
+
     public static final String TIPO_PARTO = "PARTO";
 
     public static final String VIVA_IDENTIFICADA = "VIVA_IDENTIFICADA";
@@ -207,5 +210,13 @@ public class EventoReproductivo {
 
     public void setFechaEliminado(String fechaEliminado) {
         this.fechaEliminado = fechaEliminado;
+    }
+
+    public String getOrigen() {
+        return origen;
+    }
+
+    public void setOrigen(String origen) {
+        this.origen = origen;
     }
 }

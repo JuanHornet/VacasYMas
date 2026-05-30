@@ -65,6 +65,20 @@
             android:name=".ui.listados.ListadosActivity"
             android:exported="false" />
 
+        <activity android:name=".ui.listados.ResultadoFiltroAnimalesActivity" />
+        <activity android:name=".ui.listados.FiltroAnimalesActivity" />
+        <activity android:name=".ui.listados.FaltaCrotalActivity" />
+        <activity
+            android:name=".ui.listados.ParideraActivity"
+            android:screenOrientation="portrait" />
+
+        <activity android:name=".ui.mantenimientos.MantenimientosActivity" />
+
+        <activity android:name=".ui.cercados.CercadosMantenimientoActivity" />
+
+        <activity android:name=".ui.cercados.CercadosActivity" />
+
+
 
     </application>
 

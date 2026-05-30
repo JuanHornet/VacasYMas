@@ -115,4 +115,13 @@
         android:layout_weight="1"
         android:padding="8dp" />
 
+    <Button
+        android:id="@+id/btnAccionesListado"
+        android:layout_width="match_parent"
+        android:layout_height="54dp"
+        android:layout_margin="12dp"
+        android:text="Acciones"
+        android:textAllCaps="false"
+        android:textStyle="bold" />
+
 </LinearLayout>

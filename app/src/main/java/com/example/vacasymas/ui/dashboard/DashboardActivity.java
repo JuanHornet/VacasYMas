@@ -27,9 +27,11 @@ import com.example.vacasymas.data.repo.ExplotacionRepository;
 import com.example.vacasymas.session.SessionManager;
 import com.example.vacasymas.sync.SincronizadorGeneral;
 import com.example.vacasymas.ui.animales.BuscarAnimalActivity;
+import com.example.vacasymas.ui.cercados.CercadosActivity;
 import com.example.vacasymas.ui.crotales.CrotalesActivity;
 import com.example.vacasymas.ui.diagnostico.DiagnosticoGestacionActivity;
 import com.example.vacasymas.ui.listados.ListadosActivity;
+import com.example.vacasymas.ui.mantenimientos.MantenimientosActivity;
 import com.example.vacasymas.ui.pesos.PesosActivity;
 import com.example.vacasymas.ui.reproduccion.CriasPendientesActivity;
 import com.google.android.material.appbar.MaterialToolbar;
@@ -114,6 +116,7 @@ public class DashboardActivity extends AppCompatActivity {
         findViewById(R.id.btnCriasPendientes).setOnClickListener(v -> irACriasPendientes());
         findViewById(R.id.btnCrotales).setOnClickListener(v -> irACrotales());
         findViewById(R.id.btnListados).setOnClickListener(v -> irAListados());
+        findViewById(R.id.btnCercados).setOnClickListener(v -> irACercados());
 
 
     }
@@ -165,14 +168,9 @@ public class DashboardActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.menu_add_explotacion) {
-            mostrarDialogoCrearExplotacion();
-            return true;
-        } else if (item.getItemId() == R.id.menu_edit_explotacion) {
-            mostrarDialogoEditarExplotacion();
-            return true;
-        } else if (item.getItemId() == R.id.menu_delete_explotacion) {
-            mostrarDialogoEliminarExplotacion();
+        if (item.getItemId() == R.id.menu_mantenimientos) {
+            Intent intent = new Intent(DashboardActivity.this, MantenimientosActivity.class);
+            startActivity(intent);
             return true;
         }
 
@@ -592,6 +590,19 @@ public class DashboardActivity extends AppCompatActivity {
                 ListadosActivity.class
         );
 
+        startActivity(intent);
+    }
+
+    private void irACercados() {
+        String idExplotacion = SessionManager.getIdExplotacionSeleccionada(this);
+
+        if (idExplotacion == null || idExplotacion.trim().isEmpty()) {
+            Toast.makeText(this, "No hay explotación seleccionada", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(DashboardActivity.this, CercadosActivity.class);
+        intent.putExtra("id_explotacion_uuid", idExplotacion);
         startActivity(intent);
     }
 }
